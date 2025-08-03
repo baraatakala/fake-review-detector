@@ -189,6 +189,83 @@ def load_model_and_vectorizer():
         print(f"Error loading model: {e}")
         return False
 
+def simple_rule_based_prediction(review_text):
+    """Simple rule-based prediction as ultimate fallback"""
+    try:
+        # Analyze text features
+        text_features = analyze_text_features(review_text)
+        
+        # Simple rule-based logic
+        fake_indicators = 0
+        
+        # Check for excessive exclamation marks
+        if text_features.get('exclamation_count', 0) > 3:
+            fake_indicators += 2
+        
+        # Check for high caps ratio
+        if text_features.get('caps_ratio', 0) > 20:
+            fake_indicators += 1
+        
+        # Check for superlatives
+        superlatives = ['amazing', 'perfect', 'best', 'incredible', 'fantastic', 'outstanding']
+        superlative_count = sum(1 for word in superlatives if word in review_text.lower())
+        if superlative_count > 2:
+            fake_indicators += 2
+        
+        # Check for short generic reviews
+        if text_features.get('word_count', 0) < 10 and superlative_count > 0:
+            fake_indicators += 1
+        
+        # Make prediction based on indicators
+        if fake_indicators >= 3:
+            result = "FAKE"
+            result_class = "fake"
+            confidence = min(70 + (fake_indicators * 5), 95)
+            description = "This review appears to be fake based on linguistic patterns."
+            tips = [
+                "Multiple fake review indicators detected",
+                "High use of superlatives and exclamations",
+                "Consider checking reviewer history",
+                "Note: Using basic rule-based analysis"
+            ]
+        else:
+            result = "GENUINE"
+            result_class = "genuine"
+            confidence = min(60 + ((5 - fake_indicators) * 8), 90)
+            description = "This review appears to be genuine based on linguistic patterns."
+            tips = [
+                "Review shows natural language patterns",
+                "Balanced use of descriptive language",
+                "Consider context and reviewer history",
+                "Note: Using basic rule-based analysis"
+            ]
+        
+        # Update analytics with simple prediction
+        prediction = 1 if result == "FAKE" else 0
+        update_analytics(prediction)
+        
+        # Calculate probability breakdown
+        fake_probability = confidence if result == "FAKE" else (100 - confidence)
+        genuine_probability = 100 - fake_probability
+        
+        return render_template('index.html', 
+                             review_text=review_text,
+                             result=result,
+                             result_class=result_class,
+                             confidence=confidence,
+                             fake_probability=round(fake_probability, 1),
+                             genuine_probability=round(genuine_probability, 1),
+                             description=description,
+                             text_features=text_features,
+                             tips=tips,
+                             analytics=analytics_data)
+    
+    except Exception as e:
+        print(f"Error in rule-based prediction: {e}")
+        return render_template('index.html', 
+                             error="Unable to analyze the review. Please try again.",
+                             analytics=analytics_data)
+
 def preprocess_text(text):
     """Preprocess the input text for prediction"""
     if not text or not isinstance(text, str):
@@ -237,12 +314,15 @@ def predict():
         
         if not review_text:
             return render_template('index.html', 
-                                 error="Please enter a review to analyze.")
+                                 error="Please enter a review to analyze.",
+                                 analytics=analytics_data)
         
-        # Check if model and vectorizer are loaded
+        # Check if model and vectorizer are loaded, if not try to create fallback
         if model is None or vectorizer is None:
-            return render_template('index.html', 
-                                 error="Model not loaded. Please contact administrator.")
+            print("Model not loaded, attempting to create fallback...")
+            if not create_simple_model():
+                # If everything fails, provide a simple rule-based prediction
+                return simple_rule_based_prediction(review_text)
         
         # Analyze text features
         text_features = analyze_text_features(review_text)
@@ -301,8 +381,13 @@ def predict():
     
     except Exception as e:
         print(f"Error during prediction: {e}")
-        return render_template('index.html', 
-                             error="An error occurred while processing your request.")
+        # Try fallback prediction
+        try:
+            return simple_rule_based_prediction(review_text)
+        except:
+            return render_template('index.html', 
+                                 error="An error occurred while processing your request. Please try again.",
+                                 analytics=analytics_data)
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
@@ -339,14 +424,19 @@ if __name__ == '__main__':
     # Load analytics data
     load_analytics()
     
-    # Load model and vectorizer on startup
+    # Try to load model and vectorizer on startup
+    print("Attempting to load trained models...")
     if load_model_and_vectorizer():
-        print("Starting Flask application with trained models...")
-    elif create_simple_model():
-        print("Starting Flask application with fallback model...")
+        print("✅ Starting Flask application with trained models...")
     else:
-        print("Failed to load or create model. Creating basic functionality...")
-        # Even if models fail, start the app for basic functionality
+        print("❌ Failed to load trained models, creating fallback model...")
+        if create_simple_model():
+            print("✅ Starting Flask application with fallback model...")
+        else:
+            print("⚠️ Failed to create fallback model, using rule-based prediction...")
+    
+    # Always start the app regardless of model status
+    print("🚀 Starting Flask application...")
     
     # Get port from environment variable (for cloud deployment) or default to 5000
     port = int(os.environ.get('PORT', 5000))
