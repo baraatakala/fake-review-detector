@@ -88,16 +88,80 @@ def analyze_text_features(text):
         'superlative_count': superlative_count
     }
 
+def create_simple_model():
+    """Create a simple model if the trained models are not available"""
+    global model, vectorizer
+    try:
+        print("Creating simple fallback model...")
+        
+        # Sample training data (minimal for fallback)
+        fake_reviews = [
+            "Amazing! Best product ever! Perfect! 5 stars! Must buy!",
+            "Incredible! Outstanding! Fantastic! Amazing quality! Perfect!",
+            "Best ever! Amazing! Perfect! Incredible! Must have!",
+            "Outstanding! Perfect! Amazing! Best quality! 5 stars!",
+            "Fantastic! Perfect! Best! Amazing! Incredible value!"
+        ]
+        
+        genuine_reviews = [
+            "Good product, works as expected. Delivery was on time.",
+            "Decent quality for the price. Setup took some time but works well.",
+            "Satisfied with the purchase. Good build quality and reasonable price.",
+            "Works well after two weeks of use. Good value for money.",
+            "Solid product. Installation was straightforward. Recommended."
+        ]
+        
+        # Prepare training data
+        texts = fake_reviews + genuine_reviews
+        labels = [1] * len(fake_reviews) + [0] * len(genuine_reviews)  # 1 = fake, 0 = genuine
+        
+        # Create and train vectorizer
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.linear_model import LogisticRegression
+        
+        vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
+        X = vectorizer.fit_transform(texts)
+        
+        # Train model
+        model = LogisticRegression(random_state=42)
+        model.fit(X, labels)
+        
+        print("Simple fallback model created successfully!")
+        return True
+    except Exception as e:
+        print(f"Error creating fallback model: {e}")
+        return False
+
 def load_model_and_vectorizer():
     """Load the trained model and TF-IDF vectorizer"""
     global model, vectorizer
     try:
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(script_dir, 'models')
+        
+        # Full paths to model files
+        model_path = os.path.join(models_dir, 'logistic_regression_model.pkl')
+        vectorizer_path = os.path.join(models_dir, 'tfidf_vectorizer.pkl')
+        
+        print(f"Looking for models in: {models_dir}")
+        print(f"Model path: {model_path}")
+        print(f"Vectorizer path: {vectorizer_path}")
+        
+        # Check if files exist
+        if not os.path.exists(model_path):
+            print(f"Model file not found at: {model_path}")
+            return False
+        if not os.path.exists(vectorizer_path):
+            print(f"Vectorizer file not found at: {vectorizer_path}")
+            return False
+        
         # Load the trained Logistic Regression model
-        with open('models/logistic_regression_model.pkl', 'rb') as f:
+        with open(model_path, 'rb') as f:
             model = pickle.load(f)
         
         # Load the TF-IDF vectorizer
-        with open('models/tfidf_vectorizer.pkl', 'rb') as f:
+        with open(vectorizer_path, 'rb') as f:
             vectorizer = pickle.load(f)
         
         print("Model and vectorizer loaded successfully!")
@@ -105,6 +169,13 @@ def load_model_and_vectorizer():
     except FileNotFoundError as e:
         print(f"Error loading model files: {e}")
         print("Please ensure the model files exist in the 'models' directory")
+        # List all files in current directory for debugging
+        try:
+            print("Files in current directory:", os.listdir('.'))
+            if os.path.exists('models'):
+                print("Files in models directory:", os.listdir('models'))
+        except:
+            pass
         return False
     except Exception as e:
         print(f"Error loading model: {e}")
@@ -262,9 +333,13 @@ if __name__ == '__main__':
     
     # Load model and vectorizer on startup
     if load_model_and_vectorizer():
-        print("Starting Flask application...")
-        # Get port from environment variable (for cloud deployment) or default to 5000
-        port = int(os.environ.get('PORT', 5000))
-        app.run(debug=False, host='0.0.0.0', port=port)
+        print("Starting Flask application with trained models...")
+    elif create_simple_model():
+        print("Starting Flask application with fallback model...")
     else:
-        print("Failed to load model. Please check the model files.")
+        print("Failed to load or create model. Creating basic functionality...")
+        # Even if models fail, start the app for basic functionality
+    
+    # Get port from environment variable (for cloud deployment) or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
