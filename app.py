@@ -8,6 +8,14 @@ import json
 import os
 from datetime import datetime
 
+# Download NLTK data if needed
+try:
+    import nltk
+    nltk.download('punkt', quiet=True)
+    nltk.download('stopwords', quiet=True)
+except:
+    pass
+
 app = Flask(__name__)
 
 # Global variables to store the model and vectorizer
