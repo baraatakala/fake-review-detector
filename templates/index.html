@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Review Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Fake Review Detector</h1>
+            <p class="subtitle">AI-powered tool to identify fake product reviews</p>
+            
+            <!-- Quick Stats -->
+            {% if analytics and analytics.total_predictions > 0 %}
+            <div class="quick-stats">
+                <div class="stat-item">
+                    <span class="stat-number">{{ analytics.total_predictions }}</span>
+                    <span class="stat-label">Total Reviews Analyzed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ analytics.predictions_today }}</span>
+                    <span class="stat-label">Today</span>
+                </div>
+                <div class="stat-item">
+                    <a href="/analytics" class="analytics-link">📊 View Analytics</a>
+                </div>
+            </div>
+            {% endif %}
+        </header>
+
+        <main>
+            <div class="form-container">
+                <form method="POST" action="/predict" class="review-form">
+                    <div class="input-group">
+                        <label for="review_text">Enter Product Review:</label>
+                        <textarea 
+                            id="review_text" 
+                            name="review_text" 
+                            rows="6" 
+                            placeholder="Paste or type the product review you want to analyze..."
+                            required>{{ review_text if review_text else '' }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="analyze-btn">
+                        <span class="btn-text">Analyze Review</span>
+                        <span class="btn-icon">🔍</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            {% if result %}
+            <div class="result-container {{ result_class }}">
+                <div class="result-header">
+                    <h2>Analysis Result</h2>
+                    {% if result_class == 'fake' %}
+                        <span class="result-icon">⚠️</span>
+                    {% else %}
+                        <span class="result-icon">✅</span>
+                    {% endif %}
+                </div>
+                
+                <div class="result-content">
+                    <div class="result-status">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value {{ result_class }}">{{ result }}</span>
+                    </div>
+                    
+                    <!-- Enhanced Confidence Display -->
+                    <div class="confidence-section">
+                        <div class="confidence-score">
+                            <span class="confidence-label">Overall Confidence:</span>
+                            <span class="confidence-value">{{ confidence }}%</span>
+                        </div>
+                        
+                        <!-- Probability Breakdown -->
+                        <div class="probability-breakdown">
+                            <div class="prob-item genuine">
+                                <span class="prob-label">Genuine:</span>
+                                <div class="prob-bar">
+                                    <div class="prob-fill genuine" style="width: {{ genuine_probability }}%"></div>
+                                </div>
+                                <span class="prob-value">{{ genuine_probability }}%</span>
+                            </div>
+                            <div class="prob-item fake">
+                                <span class="prob-label">Fake:</span>
+                                <div class="prob-bar">
+                                    <div class="prob-fill fake" style="width: {{ fake_probability }}%"></div>
+                                </div>
+                                <span class="prob-value">{{ fake_probability }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="result-description">{{ description }}</p>
+                    
+                    <!-- Text Analysis Features -->
+                    {% if text_features %}
+                    <div class="text-analysis">
+                        <h4>📊 Text Analysis</h4>
+                        <div class="analysis-grid">
+                            <div class="analysis-item">
+                                <span class="analysis-label">Words:</span>
+                                <span class="analysis-value">{{ text_features.word_count }}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Characters:</span>
+                                <span class="analysis-value">{{ text_features.character_count }}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Sentences:</span>
+                                <span class="analysis-value">{{ text_features.sentence_count }}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Avg Word Length:</span>
+                                <span class="analysis-value">{{ "%.1f"|format(text_features.avg_word_length) }}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Exclamations:</span>
+                                <span class="analysis-value">{{ text_features.exclamation_count }}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Caps Ratio:</span>
+                                <span class="analysis-value">{{ text_features.caps_ratio }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Tips Section -->
+                    {% if tips %}
+                    <div class="tips-section">
+                        <h4>💡 Analysis Tips</h4>
+                        <ul class="tips-list">
+                        {% for tip in tips %}
+                            <li>{{ tip }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Error Section -->
+            {% if error %}
+            <div class="error-container">
+                <div class="error-content">
+                    <span class="error-icon">❌</span>
+                    <p class="error-message">{{ error }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- How it works section -->
+            <div class="info-section">
+                <h3>How it works</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-icon">📝</div>
+                        <h4>Text Preprocessing</h4>
+                        <p>The review text is cleaned and normalized for analysis</p>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🔢</div>
+                        <h4>Feature Extraction</h4>
+                        <p>TF-IDF vectorization converts text into numerical features</p>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🤖</div>
+                        <h4>ML Classification</h4>
+                        <p>Logistic Regression model predicts fake vs genuine reviews</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Fake Review Detector. Built with Flask and Machine Learning.</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

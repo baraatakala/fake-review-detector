@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Fake Review Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Analytics Dashboard</h1>
+            <p class="subtitle">Review detection statistics and insights</p>
+            <a href="/" class="back-link">← Back to Detector</a>
+        </header>
+
+        <main>
+            <div class="analytics-grid">
+                <!-- Total Predictions -->
+                <div class="analytics-card total">
+                    <div class="card-icon">🔍</div>
+                    <div class="card-content">
+                        <h3>Total Reviews Analyzed</h3>
+                        <div class="big-number">{{ stats.total_predictions }}</div>
+                        <p class="card-subtitle">All time predictions</p>
+                    </div>
+                </div>
+
+                <!-- Today's Predictions -->
+                <div class="analytics-card today">
+                    <div class="card-icon">📅</div>
+                    <div class="card-content">
+                        <h3>Today's Analysis</h3>
+                        <div class="big-number">{{ stats.predictions_today }}</div>
+                        <p class="card-subtitle">Reviews analyzed today</p>
+                    </div>
+                </div>
+
+                <!-- Fake Reviews -->
+                <div class="analytics-card fake">
+                    <div class="card-icon">⚠️</div>
+                    <div class="card-content">
+                        <h3>Fake Reviews Detected</h3>
+                        <div class="big-number">{{ stats.fake_predictions }}</div>
+                        <p class="card-subtitle">{{ stats.fake_percentage }}% of total</p>
+                    </div>
+                </div>
+
+                <!-- Genuine Reviews -->
+                <div class="analytics-card genuine">
+                    <div class="card-icon">✅</div>
+                    <div class="card-content">
+                        <h3>Genuine Reviews</h3>
+                        <div class="big-number">{{ stats.genuine_predictions }}</div>
+                        <p class="card-subtitle">{{ stats.genuine_percentage }}% of total</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Breakdown -->
+            {% if stats.total_predictions > 0 %}
+            <div class="breakdown-section">
+                <h2>Detection Breakdown</h2>
+                <div class="breakdown-chart">
+                    <div class="chart-container">
+                        <div class="chart-bar">
+                            <div class="chart-segment genuine" style="width: {{ stats.genuine_percentage }}%">
+                                <span class="segment-label">{{ stats.genuine_percentage }}% Genuine</span>
+                            </div>
+                            <div class="chart-segment fake" style="width: {{ stats.fake_percentage }}%">
+                                <span class="segment-label">{{ stats.fake_percentage }}% Fake</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color genuine"></div>
+                            <span>Genuine Reviews ({{ stats.genuine_predictions }})</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color fake"></div>
+                            <span>Fake Reviews ({{ stats.fake_predictions }})</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Insights -->
+            <div class="insights-section">
+                <h2>📈 Insights</h2>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <h4>Detection Rate</h4>
+                        {% if stats.total_predictions > 0 %}
+                            {% if stats.fake_percentage > 30 %}
+                                <p class="insight-text warning">High fake review rate detected ({{ stats.fake_percentage }}%). Consider additional verification.</p>
+                            {% elif stats.fake_percentage > 15 %}
+                                <p class="insight-text caution">Moderate fake review rate ({{ stats.fake_percentage }}%). Normal range for most platforms.</p>
+                            {% else %}
+                                <p class="insight-text good">Low fake review rate ({{ stats.fake_percentage }}%). Good review quality overall.</p>
+                            {% endif %}
+                        {% else %}
+                            <p class="insight-text">No data available yet. Start analyzing reviews to see insights.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h4>Usage Trend</h4>
+                        {% if stats.predictions_today > 0 %}
+                            <p class="insight-text">{{ stats.predictions_today }} reviews analyzed today. System is actively being used!</p>
+                        {% else %}
+                            <p class="insight-text">No reviews analyzed today yet. Start detecting fake reviews now!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- How to Improve -->
+            <div class="tips-section">
+                <h2>💡 Tips for Better Results</h2>
+                <div class="tips-grid">
+                    <div class="tip-card">
+                        <div class="tip-icon">📝</div>
+                        <h4>Quality Text Input</h4>
+                        <p>Provide complete reviews with proper grammar for best accuracy.</p>
+                    </div>
+                    <div class="tip-card">
+                        <div class="tip-icon">🔍</div>
+                        <h4>Context Matters</h4>
+                        <p>Consider the review context, product type, and reviewer history.</p>
+                    </div>
+                    <div class="tip-card">
+                        <div class="tip-icon">⚖️</div>
+                        <h4>Use as Support</h4>
+                        <p>Use this tool as support for manual review verification, not replacement.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Fake Review Detector Analytics. Built with Flask and Machine Learning.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Add some animation to the charts
+        document.addEventListener('DOMContentLoaded', function() {
+            const segments = document.querySelectorAll('.chart-segment');
+            segments.forEach(segment => {
+                const width = segment.style.width;
+                segment.style.width = '0%';
+                setTimeout(() => {
+                    segment.style.transition = 'width 1s ease-in-out';
+                    segment.style.width = width;
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
